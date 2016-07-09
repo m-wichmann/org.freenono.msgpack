@@ -1,4 +1,4 @@
-package de.ichmann.martinw.msgpackeditor;
+package org.freenono.msgpack.editor;
 
 import org.eclipse.swt.dnd.DND;
 import org.eclipse.swt.dnd.DropTargetEvent;
@@ -18,17 +18,21 @@ public class MsgPackDropTargetListener implements DropTargetListener {
 
 	@Override
 	public void dropAccept(DropTargetEvent event) {
-		System.out.println("dropAccept");
+		
 	}
 
 	@Override
 	public void drop(DropTargetEvent event) {
-		System.out.println("drop");
+		
 	}
 
 	@Override
 	public void dragOver(DropTargetEvent event) {
-		/* Source: https://github.com/aerofs/eclipse-platform-swt/blob/master/examples/org.eclipse.swt.snippets/src/org/eclipse/swt/snippets/Snippet91.java */
+		/*
+		 * Source:
+		 * https://github.com/aerofs/eclipse-platform-swt/blob/master/examples/
+		 * org.eclipse.swt.snippets/src/org/eclipse/swt/snippets/Snippet91.java
+		 */
 
 		event.feedback = DND.FEEDBACK_EXPAND | DND.FEEDBACK_SCROLL;
 		if (event.item != null) {
@@ -47,16 +51,16 @@ public class MsgPackDropTargetListener implements DropTargetListener {
 
 	@Override
 	public void dragOperationChanged(DropTargetEvent event) {
-		System.out.println("dragOperationChanged");
+		
 	}
 
 	@Override
 	public void dragLeave(DropTargetEvent event) {
-		System.out.println("dragLeave");
+		
 	}
 
 	@Override
 	public void dragEnter(DropTargetEvent event) {
-		System.out.println("dragEnter");
+		
 	}
 }

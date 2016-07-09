@@ -8,9 +8,9 @@
             name="MessagePack Editor"
             extensions="msg"
             icon="icons/sample.gif"
-            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
-            class="de.ichmann.martinw.msgpackeditor.MsgPackEditor"
-            id="de.ichmann.martinw.msgpackeditor.MsgPackEditor">
+            contributorClass="org.freenono.msgpack.editor.MsgPackEditorActionContributor"
+            class="org.freenono.msgpack.editor.MsgPackEditor"
+            id="org.freenono.msgpack.editor.MsgPackEditor">
       </editor>
    </extension>
 

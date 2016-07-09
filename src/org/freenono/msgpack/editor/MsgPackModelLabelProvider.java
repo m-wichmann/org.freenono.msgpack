@@ -1,6 +1,7 @@
-package de.ichmann.martinw.msgpackeditor;
+package org.freenono.msgpack.editor;
 
 import java.net.URL;
+import java.util.HashMap;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
@@ -9,37 +10,40 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
-import org.msgpack.value.BinaryValue;
-
-import de.ichmann.martinw.msgpackeditor.model.ModelArray;
-import de.ichmann.martinw.msgpackeditor.model.ModelBaseValue;
-import de.ichmann.martinw.msgpackeditor.model.ModelBinary;
-import de.ichmann.martinw.msgpackeditor.model.ModelBoolean;
-import de.ichmann.martinw.msgpackeditor.model.ModelExtension;
-import de.ichmann.martinw.msgpackeditor.model.ModelFloat;
-import de.ichmann.martinw.msgpackeditor.model.ModelInteger;
-import de.ichmann.martinw.msgpackeditor.model.ModelMap;
-import de.ichmann.martinw.msgpackeditor.model.ModelString;
-import de.ichmann.martinw.msgpackeditor.model.ModelBaseValue.ModelValueType;
+import org.freenono.msgpack.editor.model.ModelArray;
+import org.freenono.msgpack.editor.model.ModelBaseValue;
+import org.freenono.msgpack.editor.model.ModelBinary;
+import org.freenono.msgpack.editor.model.ModelBoolean;
+import org.freenono.msgpack.editor.model.ModelExtension;
+import org.freenono.msgpack.editor.model.ModelFloat;
+import org.freenono.msgpack.editor.model.ModelInteger;
+import org.freenono.msgpack.editor.model.ModelMap;
+import org.freenono.msgpack.editor.model.ModelString;
+import org.freenono.msgpack.editor.model.ModelBaseValue.ModelValueType;
 
 public class MsgPackModelLabelProvider extends LabelProvider {
-	
-	// TODO: dispose of images
 
 	private Display display;
+	private HashMap<ModelValueType, Image> imageMap = new HashMap<>();
 
 	public MsgPackModelLabelProvider(Display display) {
 		super();
 		this.display = display;
 	}
-	
+
 	@Override
 	public Image getImage(Object element) {
 		if (element instanceof ModelBaseValue) {
-			ModelBaseValue value = (ModelBaseValue) element;
-			ModelValueType valueType = value.getValueType();
-			String iconPath = "icons/array.png";
+			ModelValueType valueType = ((ModelBaseValue) element).getValueType();
 
+			/* Get Image from map */
+			Image image = imageMap.get(valueType);
+			if (image != null) {
+				return image;
+			}
+
+			/* Image not in map */
+			String iconPath;
 			switch (valueType) {
 				case NIL:
 					iconPath = "icons/nil.png";
@@ -68,20 +72,25 @@ public class MsgPackModelLabelProvider extends LabelProvider {
 				case STRING:
 					iconPath = "icons/string.png";
 					break;
+				default:
+					iconPath = "icons/array.png";
+					break;
 			}
 
-			// TODO: fix plugin ID
-			URL url = FileLocator.find(Platform.getBundle("MsgPackEditor"), new Path(iconPath), null);
-			Image image = ImageDescriptor.createFromURL(url).createImage(true);
-			
-			// TODO: Let Eclipse resize the Icon!? 
-			Image resizedImage = new Image(this.display, image.getImageData().scaledTo(16, 16));
+			// TODO: Let Eclipse resize the Icon!?
+			URL url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path(iconPath), null);
+			Image origImage = ImageDescriptor.createFromURL(url).createImage(true);
+			Image resizedImage = new Image(this.display, origImage.getImageData().scaledTo(16, 16));
+
+			/* put Image in map for later use */
+			imageMap.put(valueType, resizedImage);
+
 			return resizedImage;
 		}
 
 		return super.getImage(element);
 	}
-	
+
 	@Override
 	public String getText(Object element) {
 		if (element instanceof ModelBaseValue) {
@@ -114,11 +123,19 @@ public class MsgPackModelLabelProvider extends LabelProvider {
 					return "Map (" + mapValue.getValue().size() + " elements)";
 				case STRING:
 					ModelString stringValue = (ModelString) value;
-					// TODO: limit length
 					return stringValue.getValue();
 			}
 		}
 
 		return super.getText(element);
+	}
+
+	@Override
+	public void dispose() {
+		super.dispose();
+
+		for (Image image : imageMap.values()) {
+			image.dispose();
+		}
 	}
 }

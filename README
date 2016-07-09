@@ -1,0 +1,4 @@
+MsgPackEditor
+=============
+Eclipse editor plugin to view and modify MsgPack files. MsgPack is a simple
+binary format (msgpack.org), kind of like json, but binary.

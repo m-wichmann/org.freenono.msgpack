@@ -1,15 +1,4 @@
-package de.ichmann.martinw.msgpackeditor.model;
-
-import org.msgpack.value.ArrayValue;
-import org.msgpack.value.BinaryValue;
-import org.msgpack.value.BooleanValue;
-import org.msgpack.value.ExtensionValue;
-import org.msgpack.value.FloatValue;
-import org.msgpack.value.IntegerValue;
-import org.msgpack.value.MapValue;
-import org.msgpack.value.StringValue;
-import org.msgpack.value.Value;
-import org.msgpack.value.ValueType;
+package org.freenono.msgpack.editor.model;
 
 public class ModelBaseValue {
 	public enum ModelValueType {

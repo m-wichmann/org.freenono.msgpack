@@ -1,4 +1,4 @@
-package de.ichmann.martinw.msgpackeditor.model;
+package org.freenono.msgpack.editor.model;
 
 public class ModelBoolean extends ModelBaseValue {
 	private boolean value;
