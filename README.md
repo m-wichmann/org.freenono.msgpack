@@ -6,7 +6,7 @@ binary format (msgpack.org), kind of like json, but binary.
 This package is not directly linked to Freenono [1], but is hosted on the site.
 To install the plugin, use following update site:
 
-    http://freenono.org/org.freenono.msgpack
+    http://freenono.org/eclipse_update_site/
 
 
 [1] freenono.org

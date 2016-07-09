@@ -9,3 +9,4 @@ Require-Bundle: org.msgpack.java;bundle-version="0.8.7",
  org.eclipse.ui,
  org.eclipse.ui.ide
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-Vendor: Martin Wichmann
