@@ -7,7 +7,7 @@
       <editor
             name="MsgPack Editor"
             extensions="msg"
-            icon="icons/sample.gif"
+            icon="icons/icon.gif"
             contributorClass="org.freenono.msgpack.editor.MsgPackEditorActionContributor"
             class="org.freenono.msgpack.editor.MsgPackEditor"
             id="org.freenono.msgpack.editor.MsgPackEditor">
