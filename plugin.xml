@@ -5,7 +5,7 @@
    <extension
          point="org.eclipse.ui.editors">
       <editor
-            name="MessagePack Editor"
+            name="MsgPack Editor"
             extensions="msg"
             icon="icons/sample.gif"
             contributorClass="org.freenono.msgpack.editor.MsgPackEditorActionContributor"
