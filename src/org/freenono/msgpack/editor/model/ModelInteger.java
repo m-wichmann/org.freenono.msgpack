@@ -12,6 +12,10 @@ public class ModelInteger extends ModelBaseValue {
 		return value;
 	}
 	
+	public void setValue(long value) {
+		this.value = value;
+	}
+	
 	@Override
 	public String toString() {
 		return Long.toString(this.value);

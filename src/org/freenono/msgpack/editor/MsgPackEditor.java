@@ -11,7 +11,12 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jface.viewers.ColumnViewerEditor;
+import org.eclipse.jface.viewers.ColumnViewerEditorActivationEvent;
+import org.eclipse.jface.viewers.ColumnViewerEditorActivationStrategy;
 import org.eclipse.jface.viewers.TreeViewer;
+import org.eclipse.jface.viewers.TreeViewerColumn;
+import org.eclipse.jface.viewers.TreeViewerEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -46,6 +51,7 @@ public class MsgPackEditor extends EditorPart {
 
 	private Tree tree;
 	private TreeViewer treeViewer;
+	private TreeViewerColumn treeViewerColumn;
 	private Label infoLabel;
 	private MsgPackInfoLabelListener infoLabelListener;
 
@@ -122,10 +128,12 @@ public class MsgPackEditor extends EditorPart {
 
 		// TreeViewer
 		treeViewer = new TreeViewer(tree);
+		treeViewerColumn = new TreeViewerColumn(treeViewer, SWT.NONE);
 		treeViewer.setContentProvider(new MsgPackModelContentProvider());
-		treeViewer.setLabelProvider(new MsgPackModelLabelProvider(parent.getDisplay()));
+		treeViewerColumn.setLabelProvider(new MsgPackModelCellLabelProvider(parent.getDisplay()));
 		treeViewer.setInput(model);
 		treeViewer.expandAll();
+		treeViewerColumn.getColumn().pack();
 
 		// InfoLabel
 		infoLabel = new Label(parent, 0);
@@ -136,9 +144,20 @@ public class MsgPackEditor extends EditorPart {
 		infoLabelListener = new MsgPackInfoLabelListener(infoLabel);
 		treeViewer.addSelectionChangedListener(infoLabelListener);
 
-//		// TODO: In-line editing
-//		// http://ramkulkarni.com/blog/in-place-editing-in-eclipse-treeviewer/
-//
+		// In-line editing (http://ramkulkarni.com/blog/in-place-editing-in-eclipse-treeviewer/)
+		// Add EditorActivationStrategy and CellEditor (column.pack() to resize correctly at start)
+		TreeViewerEditor.create(treeViewer, new ColumnViewerEditorActivationStrategy(treeViewer) {
+			@Override
+			protected boolean isEditorActivationEvent(ColumnViewerEditorActivationEvent event) {
+				return event.eventType == ColumnViewerEditorActivationEvent.MOUSE_DOUBLE_CLICK_SELECTION;
+			}
+		}, ColumnViewerEditor.DEFAULT);
+		treeViewerColumn.setEditingSupport(new MsgPackCellEditingSupport(treeViewer));
+
+		
+		
+		
+		
 //		// DND Support
 //		Transfer[] transfers = new Transfer[] {org.eclipse.ui.part.PluginTransfer.getInstance()};
 //		// TODO: maybe drop DROP_COPY?!

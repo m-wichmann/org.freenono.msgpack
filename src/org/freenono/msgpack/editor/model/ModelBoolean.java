@@ -12,6 +12,10 @@ public class ModelBoolean extends ModelBaseValue {
 		return value;
 	}
 	
+	public void setValue(boolean value) {
+		this.value = value;
+	}
+	
 	@Override
 	public String toString() {
 		return this.value ? "true" : "false";

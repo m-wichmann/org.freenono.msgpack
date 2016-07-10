@@ -7,7 +7,9 @@ import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.viewers.ColumnLabelProvider;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.freenono.msgpack.editor.model.ModelArray;
@@ -21,13 +23,12 @@ import org.freenono.msgpack.editor.model.ModelMap;
 import org.freenono.msgpack.editor.model.ModelString;
 import org.freenono.msgpack.editor.model.ModelBaseValue.ModelValueType;
 
-@Deprecated
-public class MsgPackModelLabelProvider extends LabelProvider {
+public class MsgPackModelCellLabelProvider extends ColumnLabelProvider {
 
 	private Display display;
 	private HashMap<ModelValueType, Image> imageMap = new HashMap<>();
 
-	public MsgPackModelLabelProvider(Display display) {
+	public MsgPackModelCellLabelProvider(Display display) {
 		super();
 		this.display = display;
 	}
@@ -91,6 +92,7 @@ public class MsgPackModelLabelProvider extends LabelProvider {
 
 		return super.getImage(element);
 	}
+	
 
 	@Override
 	public String getText(Object element) {
@@ -131,6 +133,34 @@ public class MsgPackModelLabelProvider extends LabelProvider {
 		return super.getText(element);
 	}
 
+ 	@Override
+ 	public Color getBackground(Object element) {
+		if (element instanceof ModelBaseValue) {
+			ModelBaseValue value = (ModelBaseValue) element;
+			ModelValueType valueType = value.getValueType();
+			
+			switch (valueType) {
+				case ARRAY:
+					// TODO: define color
+					return display.getSystemColor(SWT.COLOR_BLUE);
+					
+				case MAP:
+					ModelMap modelMapValue = (ModelMap) value;
+					if ((modelMapValue.getValue().size() % 2) != 0) {
+						return display.getSystemColor(SWT.COLOR_RED);
+					} else {
+						// TODO: define color
+						return display.getSystemColor(SWT.COLOR_BLUE);	
+					}
+					
+				default:
+					break;
+			}
+		}
+ 		
+ 		return super.getBackground(element);
+ 	}
+	
 	@Override
 	public void dispose() {
 		super.dispose();
