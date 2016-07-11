@@ -24,7 +24,6 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
@@ -157,7 +156,7 @@ public class MsgPackEditor extends EditorPart {
 				return event.eventType == ColumnViewerEditorActivationEvent.MOUSE_DOUBLE_CLICK_SELECTION;
 			}
 		}, ColumnViewerEditor.DEFAULT);
-		treeViewerColumn.setEditingSupport(new MsgPackCellEditingSupport(treeViewer));
+		treeViewerColumn.setEditingSupport(new MsgPackCellEditingSupport(treeViewer, this));
 
 		// traverse tree by arrow keys
 		tree.addKeyListener(new KeyListener() {
@@ -322,5 +321,10 @@ public class MsgPackEditor extends EditorPart {
 		}
 
 		return packer.toByteArray();
+	}
+	
+	public void setDirty() {
+		dirty = true;
+		firePropertyChange(IEditorPart.PROP_DIRTY);
 	}
 }

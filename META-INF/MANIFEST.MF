@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: MsgPackEditor
 Bundle-SymbolicName: org.freenono.msgpack;singleton:=true
-Bundle-Version: 0.0.4
+Bundle-Version: 0.0.5
 Require-Bundle: org.msgpack.java;bundle-version="0.8.7",
  org.eclipse.core.resources,
  org.eclipse.core.runtime,
