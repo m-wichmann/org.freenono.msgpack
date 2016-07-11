@@ -11,6 +11,7 @@ import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
 import org.freenono.msgpack.editor.model.ModelArray;
 import org.freenono.msgpack.editor.model.ModelBaseValue;
@@ -126,7 +127,7 @@ public class MsgPackModelCellLabelProvider extends ColumnLabelProvider {
 					return "Map (" + mapValue.getValue().size() + " elements)";
 				case STRING:
 					ModelString stringValue = (ModelString) value;
-					return stringValue.getValue();
+					return "\"" + stringValue.getValue() + "\"";
 			}
 		}
 
@@ -135,22 +136,22 @@ public class MsgPackModelCellLabelProvider extends ColumnLabelProvider {
 
  	@Override
  	public Color getBackground(Object element) {
+ 		// TODO: store Color objects to dispose later
+ 		
 		if (element instanceof ModelBaseValue) {
 			ModelBaseValue value = (ModelBaseValue) element;
 			ModelValueType valueType = value.getValueType();
 			
 			switch (valueType) {
 				case ARRAY:
-					// TODO: define color
-					return display.getSystemColor(SWT.COLOR_BLUE);
+					return new Color(display, new RGB(255, 255, 237));
 					
 				case MAP:
 					ModelMap modelMapValue = (ModelMap) value;
 					if ((modelMapValue.getValue().size() % 2) != 0) {
-						return display.getSystemColor(SWT.COLOR_RED);
+						return new Color(display, new RGB(237, 97, 97));
 					} else {
-						// TODO: define color
-						return display.getSystemColor(SWT.COLOR_BLUE);	
+						return new Color(display, new RGB(255, 255, 237));	
 					}
 					
 				default:
@@ -160,7 +161,7 @@ public class MsgPackModelCellLabelProvider extends ColumnLabelProvider {
  		
  		return super.getBackground(element);
  	}
-	
+
 	@Override
 	public void dispose() {
 		super.dispose();

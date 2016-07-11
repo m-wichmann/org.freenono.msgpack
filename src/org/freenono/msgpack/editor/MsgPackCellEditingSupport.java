@@ -115,7 +115,10 @@ public class MsgPackCellEditingSupport extends EditingSupport {
 //    		}
 //    	}
     	
-        return new TextCellEditor(((TreeViewer) this.getViewer()).getTree()); 
+        //return new TextCellEditor(((TreeViewer) this.getViewer()).getTree());
+    	
+    	String[] comboElements = new String[] {"true", "false"};
+    	return new ComboBoxCellEditor(((TreeViewer) this.getViewer()).getTree(), comboElements);
     }
 
     @Override

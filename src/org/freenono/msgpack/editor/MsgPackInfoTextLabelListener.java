@@ -3,24 +3,24 @@ package org.freenono.msgpack.editor;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
-import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Text;
 import org.freenono.msgpack.editor.model.ModelBaseValue;
 import org.freenono.msgpack.editor.model.ModelFloat;
 import org.freenono.msgpack.editor.model.ModelInteger;
 import org.freenono.msgpack.editor.model.ModelString;
 
-public class MsgPackInfoLabelListener implements ISelectionChangedListener {
+public class MsgPackInfoTextLabelListener implements ISelectionChangedListener {
 
-	private Label label;
+	private Text textLabel;
 
-	public MsgPackInfoLabelListener(Label label) {
-		this.label = label;
+	public MsgPackInfoTextLabelListener(Text label) {
+		this.textLabel = label;
 	}
 
 	@Override
 	public void selectionChanged(SelectionChangedEvent event) {
 		if (event.getSelection().isEmpty()) {
-			label.setText("");
+			textLabel.setText("");
 			return;
 		}
 
@@ -80,6 +80,6 @@ public class MsgPackInfoLabelListener implements ISelectionChangedListener {
 					break;
 			}
 		}
-		label.setText(labelText);
+		textLabel.setText(labelText);
 	}
 }

@@ -18,12 +18,16 @@ import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.TreeViewerColumn;
 import org.eclipse.jface.viewers.TreeViewerEditor;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
+import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorSite;
@@ -52,8 +56,8 @@ public class MsgPackEditor extends EditorPart {
 	private Tree tree;
 	private TreeViewer treeViewer;
 	private TreeViewerColumn treeViewerColumn;
-	private Label infoLabel;
-	private MsgPackInfoLabelListener infoLabelListener;
+	private Text infoTextLabel;
+	private MsgPackInfoTextLabelListener infoTextLabelListener;
 
 	@Override
 	public boolean isDirty() {
@@ -135,14 +139,15 @@ public class MsgPackEditor extends EditorPart {
 		treeViewer.expandAll();
 		treeViewerColumn.getColumn().pack();
 
-		// InfoLabel
-		infoLabel = new Label(parent, 0);
+		// infoTextLabel
+		infoTextLabel = new Text(parent, SWT.MULTI | SWT.WRAP);
+		infoTextLabel.setEditable(false);
 		GridData gridData = new GridData(SWT.FILL, SWT.END, true, false);
 		// TODO: fixed size isn't a great idea!
 		gridData.heightHint = 100;
-		infoLabel.setLayoutData(gridData);
-		infoLabelListener = new MsgPackInfoLabelListener(infoLabel);
-		treeViewer.addSelectionChangedListener(infoLabelListener);
+		infoTextLabel.setLayoutData(gridData);
+		infoTextLabelListener = new MsgPackInfoTextLabelListener(infoTextLabel);
+		treeViewer.addSelectionChangedListener(infoTextLabelListener);
 
 		// In-line editing (http://ramkulkarni.com/blog/in-place-editing-in-eclipse-treeviewer/)
 		// Add EditorActivationStrategy and CellEditor (column.pack() to resize correctly at start)
@@ -154,7 +159,40 @@ public class MsgPackEditor extends EditorPart {
 		}, ColumnViewerEditor.DEFAULT);
 		treeViewerColumn.setEditingSupport(new MsgPackCellEditingSupport(treeViewer));
 
-		
+		// traverse tree by arrow keys
+		tree.addKeyListener(new KeyListener() {
+			@Override
+			public void keyReleased(KeyEvent event) {
+				/* Nothing to do */
+			}
+			
+			@Override
+			public void keyPressed(KeyEvent event) {
+				TreeItem[] selection;
+				
+				switch (event.keyCode) {
+					case SWT.ARROW_RIGHT:
+						selection = tree.getSelection();
+						if (selection.length == 1) {
+							selection[0].setExpanded(true);
+						}
+						break;
+						
+					case SWT.ARROW_LEFT:
+						selection = tree.getSelection();
+						if (selection.length == 1) {
+							if (selection[0].getItems().length == 0) {
+								/* Item without children detected -> collapse parent */
+								selection[0].getParentItem().setExpanded(false);
+							} else {
+								/* Item with children detected */
+								selection[0].setExpanded(false);
+							}
+						}
+						break;
+				}
+			}
+		});
 		
 		
 		
@@ -223,7 +261,7 @@ public class MsgPackEditor extends EditorPart {
 	public void dispose() {
 		super.dispose();
 		this.tree.dispose();
-		this.infoLabel.dispose();
+		this.infoTextLabel.dispose();
 	}
 
 	@Override
