@@ -6,24 +6,47 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.jface.action.MenuManager;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ColumnViewerEditor;
 import org.eclipse.jface.viewers.ColumnViewerEditorActivationEvent;
 import org.eclipse.jface.viewers.ColumnViewerEditorActivationStrategy;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.TreeViewerColumn;
 import org.eclipse.jface.viewers.TreeViewerEditor;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ArmEvent;
+import org.eclipse.swt.events.ArmListener;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.KeyListener;
+import org.eclipse.swt.events.MenuAdapter;
+import org.eclipse.swt.events.MenuDetectEvent;
+import org.eclipse.swt.events.MenuDetectListener;
+import org.eclipse.swt.events.MenuEvent;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
@@ -40,6 +63,16 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.value.Value;
 import org.eclipse.ui.part.FileEditorInput;
 import org.freenono.msgpack.editor.model.Model;
+import org.freenono.msgpack.editor.model.ModelArray;
+import org.freenono.msgpack.editor.model.ModelBaseValue;
+import org.freenono.msgpack.editor.model.ModelBinary;
+import org.freenono.msgpack.editor.model.ModelBoolean;
+import org.freenono.msgpack.editor.model.ModelExtension;
+import org.freenono.msgpack.editor.model.ModelFloat;
+import org.freenono.msgpack.editor.model.ModelInteger;
+import org.freenono.msgpack.editor.model.ModelMap;
+import org.freenono.msgpack.editor.model.ModelNil;
+import org.freenono.msgpack.editor.model.ModelString;
 
 public class MsgPackEditor extends EditorPart {
 
@@ -159,6 +192,7 @@ public class MsgPackEditor extends EditorPart {
 		treeViewerColumn.setEditingSupport(new MsgPackCellEditingSupport(treeViewer, this));
 
 		// traverse tree by arrow keys
+		// TODO: seems like on Windows traversing already works without this, so... yeah
 		tree.addKeyListener(new KeyListener() {
 			@Override
 			public void keyReleased(KeyEvent event) {
@@ -181,8 +215,8 @@ public class MsgPackEditor extends EditorPart {
 						selection = tree.getSelection();
 						if (selection.length == 1) {
 							if (selection[0].getItems().length == 0) {
-								/* Item without children detected -> collapse parent */
-								selection[0].getParentItem().setExpanded(false);
+								/* Item without children detected -> jump to parent */
+								selection[0].getParent().setSelection(selection[0].getParentItem());
 							} else {
 								/* Item with children detected */
 								selection[0].setExpanded(false);
@@ -193,6 +227,143 @@ public class MsgPackEditor extends EditorPart {
 			}
 		});
 		
+		// TODO: HACK: This whole context menu stuff is _ugly_ and has to be replaced! Sadly I don't know how...
+		// Context Menu
+		class MenuListener extends SelectionAdapter implements MenuDetectListener {
+			
+			private ModelBaseValue currValue;
+
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+				Object obj = event.widget.getData();
+
+				ModelBaseValue newValue = null;
+
+				if (obj instanceof ModelArray) {
+					newValue = new ModelArray(new ArrayList<>());
+				} else if (obj instanceof ModelBinary) {
+					newValue = new ModelBinary(new byte[0]);
+				} else if (obj instanceof ModelBoolean) {
+					newValue = new ModelBoolean(false);
+				} else if (obj instanceof ModelExtension) {
+					newValue = new ModelExtension(new byte[0], (byte) 0);
+				} else if (obj instanceof ModelFloat) {
+					newValue = new ModelFloat(0);
+				} else if (obj instanceof ModelInteger) {
+					newValue = new ModelInteger(0);
+				} else if (obj instanceof ModelMap) {
+					newValue = new ModelMap(new ArrayList<>());
+				} else if (obj instanceof ModelNil) {
+					newValue = new ModelNil();
+				} else if (obj instanceof ModelString) {
+					newValue = new ModelString("");
+				}
+				
+				if (newValue != null) {
+					if (currValue instanceof ModelArray) {
+						((ModelArray) currValue).getValue().add(newValue);
+						MsgPackEditor.this.treeViewer.refresh();
+						MsgPackEditor.this.setDirty();
+					} else if (currValue instanceof ModelMap) {
+						((ModelMap) currValue).getValue().add(newValue);
+						MsgPackEditor.this.treeViewer.refresh();
+						MsgPackEditor.this.setDirty();
+					}
+				}
+			}
+
+			@Override
+			public void menuDetected(MenuDetectEvent event) {
+				IStructuredSelection selection = (IStructuredSelection) treeViewer.getSelection();
+				Object[] objList = selection.toArray();
+				
+				if (objList.length == 1) {
+					if (   (objList[0] instanceof ModelArray)
+						|| (objList[0] instanceof ModelMap)) {
+						
+						Tree tempTree = (Tree) event.widget;
+						TreeItem[] treeSelection = tempTree.getSelection();
+						if (treeSelection.length == 1) {
+							ModelBaseValue treeElement = (ModelBaseValue) treeSelection[0].getData();
+							currValue = treeElement;
+						}
+						
+						return;
+					}
+				}
+
+				event.doit = false;	
+			}
+		};
+		
+		Menu menu = new Menu(tree);
+		tree.setMenu(menu);
+		MenuListener menuListener = new MenuListener();
+		tree.addMenuDetectListener(menuListener);
+
+		MenuItem menuItemArray = new MenuItem(menu, SWT.NONE);
+		menuItemArray.setText("Add Array");
+		menuItemArray.setData(new ModelArray(new ArrayList<>()));
+		menuItemArray.addSelectionListener(menuListener);
+		MenuItem menuItemBinary = new MenuItem(menu, SWT.NONE);
+		menuItemBinary.setText("Add Binary");
+		menuItemBinary.setData(new ModelBinary(new byte[0]));
+		menuItemBinary.addSelectionListener(menuListener);
+		MenuItem menuItemBoolean = new MenuItem(menu, SWT.NONE);
+		menuItemBoolean.setText("Add Boolean");
+		menuItemBoolean.setData(new ModelBoolean(false));
+		menuItemBoolean.addSelectionListener(menuListener);
+		MenuItem menuItemExtension = new MenuItem(menu, SWT.NONE);
+		menuItemExtension.setText("Add Extension");
+		menuItemExtension.setData(new ModelExtension(new byte[0], (byte) 0));
+		menuItemExtension.addSelectionListener(menuListener);
+		MenuItem menuItemFloat = new MenuItem(menu, SWT.NONE);
+		menuItemFloat.setText("Add Float");
+		menuItemFloat.setData(new ModelFloat(0));
+		menuItemFloat.addSelectionListener(menuListener);
+		MenuItem menuItemInteger = new MenuItem(menu, SWT.NONE);
+		menuItemInteger.setText("Add Integer");
+		menuItemInteger.setData(new ModelInteger(0));
+		menuItemInteger.addSelectionListener(menuListener);
+		MenuItem menuItemMap = new MenuItem(menu, SWT.NONE);
+		menuItemMap.setText("Add Map");
+		menuItemMap.setData(new ModelMap(new ArrayList<>()));
+		menuItemMap.addSelectionListener(menuListener);
+		MenuItem menuItemNil = new MenuItem(menu, SWT.NONE);
+		menuItemNil.setText("Add Nil");
+		menuItemNil.setData(new ModelNil());
+		menuItemNil.addSelectionListener(menuListener);
+		MenuItem menuItemString = new MenuItem(menu, SWT.NONE);
+		menuItemString.setText("Add String");
+		menuItemString.setData(new ModelString(""));
+		menuItemString.addSelectionListener(menuListener);
+	
+		// TODO: add images to context menu
+		URL url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/string.png"), null);
+		Image origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		Image resizedImage = new Image(parent.getDisplay(), origImage.getImageData().scaledTo(16, 16));
+		menuItemString.setImage(resizedImage);
+		
+	
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		
 //		// DND Support
@@ -200,52 +371,7 @@ public class MsgPackEditor extends EditorPart {
 //		// TODO: maybe drop DROP_COPY?!
 //		treeViewer.addDragSupport((DND.DROP_COPY | DND.DROP_MOVE), transfers, new MsgPackDragSourceListener());
 //		treeViewer.addDropSupport((DND.DROP_COPY | DND.DROP_MOVE), transfers, new MsgPackDropTargetListener(tree));
-//		
-//		// Context Menu
-//		Menu menu = new Menu(tree);
-//		tree.setMenu(menu);
-//		menu.addMenuListener(new MenuAdapter() {
-//			@Override
-//			public void menuHidden(MenuEvent e) {
-//				MenuItem[] items = menu.getItems();
-//				for (int i = 0; i < items.length; i++) {
-//					items[i].dispose();
-//				}
-//			}
-//
-//			@Override
-//			public void menuShown(MenuEvent e) {
-//				// Add new items
-//				MenuItem newItem = new MenuItem(menu, SWT.NONE);
-//				newItem.setText("Menuitem");
-//				
-////				System.out.println("====");
-////				System.out.println(e.display);
-////				System.out.println(e.widget);
-////				System.out.println(e.getSource());
-//				
-//				newItem.addSelectionListener(new SelectionAdapter() {
-//					@Override
-//					public void widgetSelected(SelectionEvent event) {
-//						System.out.println(event);
-//					}
-//				});
-//			}
-//		});
-		
-//		tree.addListener(SWT.MenuDetect, event -> {
-//			System.out.println("====");
-//			System.out.println(event.data);
-//			System.out.println(event.index);
-//			System.out.println(event.item);
-//			Point pt = getSite().getShell().getDisplay().map(null, tree, new Point(event.x, event.y));
-//			Rectangle clientArea = tree.getClientArea();
-//			boolean header = clientArea.y <= pt.y && pt.y < (clientArea.y + tree.getHeaderHeight());
-//			//tree.setMenu(header ? headerMenu : treeMenu);
-//			System.out.println(event.x);
-//			System.out.println(event.y);
-//		});
-		
+
 //		// TODO: add cut and paste support
 //		Clipboard clipboard = new Clipboard(getSite().getShell().getDisplay());
 //		IActionBars bars = getEditorSite().getActionBars();
