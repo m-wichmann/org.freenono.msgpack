@@ -4,6 +4,11 @@ import java.util.ArrayList;
 
 public class ModelMap extends ModelBaseValue {
 	private ArrayList<ModelBaseValue> value;
+
+	public ModelMap() {
+		super(ModelValueType.MAP);
+		this.value = new ArrayList<ModelBaseValue>();
+	}
 	
 	public ModelMap(ArrayList<ModelBaseValue> value) {
 		super(ModelValueType.MAP);

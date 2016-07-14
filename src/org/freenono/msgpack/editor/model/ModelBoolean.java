@@ -3,6 +3,11 @@ package org.freenono.msgpack.editor.model;
 public class ModelBoolean extends ModelBaseValue {
 	private boolean value;
 	
+	public ModelBoolean() {
+		super(ModelValueType.BOOLEAN);
+		this.value = false;
+	}
+	
 	public ModelBoolean(boolean value) {
 		super(ModelValueType.BOOLEAN);
 		this.value = value;

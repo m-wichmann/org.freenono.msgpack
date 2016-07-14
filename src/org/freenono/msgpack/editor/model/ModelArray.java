@@ -5,6 +5,11 @@ import java.util.ArrayList;
 public class ModelArray extends ModelBaseValue {
 	private ArrayList<ModelBaseValue> value;
 	
+	public ModelArray() {
+		super(ModelValueType.ARRAY);
+		this.value = new ArrayList<ModelBaseValue>();
+	}	
+	
 	public ModelArray(ArrayList<ModelBaseValue> value) {
 		super(ModelValueType.ARRAY);
 		this.value = value;

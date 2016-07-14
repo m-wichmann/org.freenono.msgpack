@@ -6,6 +6,11 @@ public class ModelFloat extends ModelBaseValue {
 	
 	private double value;
 	
+	public ModelFloat() {
+		super(ModelValueType.FLOAT);
+		this.value = 0.0;
+	}
+	
 	public ModelFloat(double value) {
 		super(ModelValueType.FLOAT);
 		this.value = value;

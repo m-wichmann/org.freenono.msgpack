@@ -4,6 +4,12 @@ public class ModelExtension extends ModelBaseValue {
 	private byte[] value;
 	private byte type;
 	
+	public ModelExtension() {
+		super(ModelValueType.EXTENSION);
+		this.value = new byte[0];
+		this.type = 0;
+	}
+	
 	public ModelExtension(byte[] value, byte type) {
 		super(ModelValueType.EXTENSION);
 		this.value = value;
