@@ -186,4 +186,18 @@ public class Model {
 
 		return ret;
 	}
+	
+	public void removeElement(ModelBaseValue element) {
+		/* Don't use foreach, since remove needs index */
+		for (int i = 0; i < topLevel.size(); i++) {
+			if (topLevel.get(i) == element) {
+				topLevel.remove(i);
+				return;
+			}
+		}
+		
+		for (ModelBaseValue modelBaseValue : topLevel) {
+			modelBaseValue.removeElement(element);
+		}
+	}
 }

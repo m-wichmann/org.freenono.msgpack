@@ -31,4 +31,19 @@ public class ModelMap extends ModelBaseValue {
 		ret += "}";
 		return ret;
 	}
+	
+	@Override
+	public void removeElement(ModelBaseValue element) {
+		/* Don't use foreach, since remove needs index */
+		for (int i = 0; i < value.size(); i++) {
+			if (value.get(i) == element) {
+				value.remove(i);
+				return;
+			}
+		}
+		
+		for (ModelBaseValue modelBaseValue : value) {
+			modelBaseValue.removeElement(element);
+		}
+	}
 }

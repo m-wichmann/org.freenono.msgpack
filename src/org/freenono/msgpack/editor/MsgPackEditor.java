@@ -27,6 +27,7 @@ import org.eclipse.jface.viewers.TreeViewerEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ArmEvent;
 import org.eclipse.swt.events.ArmListener;
+import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.MenuAdapter;
@@ -42,6 +43,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Listener;
@@ -193,12 +195,7 @@ public class MsgPackEditor extends EditorPart {
 
 		// traverse tree by arrow keys
 		// TODO: seems like on Windows traversing already works without this, so... yeah
-		tree.addKeyListener(new KeyListener() {
-			@Override
-			public void keyReleased(KeyEvent event) {
-				/* Nothing to do */
-			}
-			
+		tree.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent event) {
 				TreeItem[] selection;
@@ -223,12 +220,119 @@ public class MsgPackEditor extends EditorPart {
 							}
 						}
 						break;
+						
+					/* TODO: HACK: This needs a constant! */
+					case 127:	/* Delete key */
+						selection = tree.getSelection();
+						for (TreeItem treeItem : selection) {
+							model.removeElement((ModelBaseValue) treeItem.getData());
+						}
+						setDirty();
+						treeViewer.refresh();
+						break;
 				}
 			}
 		});
-		
-		// TODO: HACK: This whole context menu stuff is _ugly_ and has to be replaced! Sadly I don't know how...
+
 		// Context Menu
+		createContextMenu(parent.getDisplay());
+		
+		// TODO: deselect tree elements
+		
+		// TODO: remove elements
+		
+//		// TODO: DND Support
+//		Transfer[] transfers = new Transfer[] {org.eclipse.ui.part.PluginTransfer.getInstance()};
+//		treeViewer.addDragSupport((DND.DROP_COPY | DND.DROP_MOVE), transfers, new MsgPackDragSourceListener());
+//		treeViewer.addDropSupport((DND.DROP_COPY | DND.DROP_MOVE), transfers, new MsgPackDropTargetListener(tree));
+
+//		// TODO: add cut and paste support
+//		Clipboard clipboard = new Clipboard(getSite().getShell().getDisplay());
+//		IActionBars bars = getEditorSite().getActionBars();
+//		bars.setGlobalActionHandler("Copy", new Action() {
+//			public void run() {
+//				System.out.println("run()");
+//			}
+//		});
+		
+		// TODO: add undo/redo
+	}
+
+	@Override
+	public void dispose() {
+		super.dispose();
+		this.tree.dispose();
+		this.infoTextLabel.dispose();
+	}
+
+	@Override
+	public void doSave(IProgressMonitor monitor) {
+		try {
+			if (inputIFile != null) {
+				saveFile(this.inputIFile, this.model);
+			} else if (inputFile != null) {
+				saveFile(this.inputFile, this.model);
+			}
+
+			dirty = false;
+			firePropertyChange(IEditorPart.PROP_DIRTY);
+		} catch (IOException | CoreException e) {
+			monitor.setCanceled(true);
+		}
+	}
+
+	@Override
+	public void doSaveAs() {
+		// TODO: maybe use this?!
+		// SaveAsDialog dialog = new SaveAsDialog(getSite().getShell().getDisplay().getActiveShell());
+
+		FileDialog dialog = new FileDialog(getSite().getShell().getDisplay().getActiveShell(), SWT.SAVE);
+		dialog.setOverwrite(true);
+		String outFilepath = dialog.open();
+
+		if (outFilepath != null) {
+			try {
+				saveFile(new File(outFilepath), this.model);
+			} catch (IOException | CoreException e) {
+				e.printStackTrace();
+			}
+
+			dirty = false;
+			firePropertyChange(IEditorPart.PROP_DIRTY);
+		}
+	}
+
+	private void saveFile(IFile file, Model model) throws IOException, CoreException {
+		byte[] data = saveFilePackData(model);
+		file.setContents(new ByteArrayInputStream(data), false, false, null);
+	}
+
+	private void saveFile(File file, Model model) throws IOException, CoreException {
+		byte[] data = saveFilePackData(model);
+		OutputStream os = new FileOutputStream(file);
+		os.write(data);
+		os.close();
+	}
+
+	private byte[] saveFilePackData(Model model) throws IOException {
+		ArrayList<Value> valueList = model.toMsgpackValue();
+
+		MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+		for (Value value : valueList) {
+			packer.packValue(value);
+		}
+
+		return packer.toByteArray();
+	}
+	
+	public void setDirty() {
+		dirty = true;
+		firePropertyChange(IEditorPart.PROP_DIRTY);
+	}
+	
+	public void createContextMenu(Display display) {
+		// TODO: HACK: This whole context menu stuff is _ugly_ and has to be replaced! Sadly I don't know how...
+		
 		class MenuListener extends SelectionAdapter implements MenuDetectListener {
 			
 			private ModelBaseValue currValue;
@@ -338,119 +442,45 @@ public class MsgPackEditor extends EditorPart {
 		menuItemString.setData(new ModelString(""));
 		menuItemString.addSelectionListener(menuListener);
 	
-		// TODO: add images to context menu
-		URL url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/string.png"), null);
-		Image origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		Image resizedImage = new Image(parent.getDisplay(), origImage.getImageData().scaledTo(16, 16));
-		menuItemString.setImage(resizedImage);
+		Image origImage;
+		Image resizedImage;
+		URL url;
 		
-	
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-//		// DND Support
-//		Transfer[] transfers = new Transfer[] {org.eclipse.ui.part.PluginTransfer.getInstance()};
-//		// TODO: maybe drop DROP_COPY?!
-//		treeViewer.addDragSupport((DND.DROP_COPY | DND.DROP_MOVE), transfers, new MsgPackDragSourceListener());
-//		treeViewer.addDropSupport((DND.DROP_COPY | DND.DROP_MOVE), transfers, new MsgPackDropTargetListener(tree));
-
-//		// TODO: add cut and paste support
-//		Clipboard clipboard = new Clipboard(getSite().getShell().getDisplay());
-//		IActionBars bars = getEditorSite().getActionBars();
-//		bars.setGlobalActionHandler("Copy", new Action() {
-//			public void run() {
-//				System.out.println("run()");
-//			}
-//		});
-	}
-
-	@Override
-	public void dispose() {
-		super.dispose();
-		this.tree.dispose();
-		this.infoTextLabel.dispose();
-	}
-
-	@Override
-	public void doSave(IProgressMonitor monitor) {
-		try {
-			if (inputIFile != null) {
-				saveFile(this.inputIFile, this.model);
-			} else if (inputFile != null) {
-				saveFile(this.inputFile, this.model);
-			}
-
-			dirty = false;
-			firePropertyChange(IEditorPart.PROP_DIRTY);
-		} catch (IOException | CoreException e) {
-			monitor.setCanceled(true);
-		}
-	}
-
-	@Override
-	public void doSaveAs() {
-		// TODO: maybe use this?!
-		// SaveAsDialog dialog = new SaveAsDialog(getSite().getShell().getDisplay().getActiveShell());
-
-		FileDialog dialog = new FileDialog(getSite().getShell().getDisplay().getActiveShell(), SWT.SAVE);
-		dialog.setOverwrite(true);
-		String outFilepath = dialog.open();
-
-		if (outFilepath != null) {
-			try {
-				saveFile(new File(outFilepath), this.model);
-			} catch (IOException | CoreException e) {
-				e.printStackTrace();
-			}
-
-			dirty = false;
-			firePropertyChange(IEditorPart.PROP_DIRTY);
-		}
-	}
-
-	private void saveFile(IFile file, Model model) throws IOException, CoreException {
-		byte[] data = saveFilePackData(model);
-		file.setContents(new ByteArrayInputStream(data), false, false, null);
-	}
-
-	private void saveFile(File file, Model model) throws IOException, CoreException {
-		byte[] data = saveFilePackData(model);
-		OutputStream os = new FileOutputStream(file);
-		os.write(data);
-		os.close();
-	}
-
-	private byte[] saveFilePackData(Model model) throws IOException {
-		ArrayList<Value> valueList = model.toMsgpackValue();
-
-		MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
-		for (Value value : valueList) {
-			packer.packValue(value);
-		}
-
-		return packer.toByteArray();
-	}
-	
-	public void setDirty() {
-		dirty = true;
-		firePropertyChange(IEditorPart.PROP_DIRTY);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/array.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemArray.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/binary.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemBinary.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/boolean.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemBoolean.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/extension.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemExtension.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/float.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemFloat.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/integer.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemInteger.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/map.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemMap.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/nil.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemNil.setImage(resizedImage);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/string.png"), null);
+		origImage = ImageDescriptor.createFromURL(url).createImage(true);
+		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
+		menuItemString.setImage(resizedImage);		
 	}
 }

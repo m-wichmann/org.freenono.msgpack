@@ -48,4 +48,8 @@ public class ModelBaseValue {
 				return super.toString();
 		}
 	}
+	
+	public void removeElement(ModelBaseValue element) {
+		/* Nothing to do for generic Value */
+	}
 }
