@@ -15,38 +15,31 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ColumnViewerEditor;
 import org.eclipse.jface.viewers.ColumnViewerEditorActivationEvent;
 import org.eclipse.jface.viewers.ColumnViewerEditorActivationStrategy;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.TreeSelection;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.TreeViewerColumn;
 import org.eclipse.jface.viewers.TreeViewerEditor;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.ArmEvent;
-import org.eclipse.swt.events.ArmListener;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
-import org.eclipse.swt.events.KeyListener;
-import org.eclipse.swt.events.MenuAdapter;
 import org.eclipse.swt.events.MenuDetectEvent;
 import org.eclipse.swt.events.MenuDetectListener;
-import org.eclipse.swt.events.MenuEvent;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Text;
@@ -90,6 +83,7 @@ public class MsgPackEditor extends EditorPart {
 	private Tree tree;
 	private TreeViewer treeViewer;
 	private TreeViewerColumn treeViewerColumn;
+	private Menu menu;
 	private Text infoTextLabel;
 	private MsgPackInfoTextLabelListener infoTextLabelListener;
 
@@ -161,7 +155,7 @@ public class MsgPackEditor extends EditorPart {
 		parent.setLayout(layout);
 
 		// Tree
-		tree = new Tree(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
+		tree = new Tree(parent, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL);
 		tree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
 		// TreeViewer
@@ -207,7 +201,7 @@ public class MsgPackEditor extends EditorPart {
 							selection[0].setExpanded(true);
 						}
 						break;
-						
+
 					case SWT.ARROW_LEFT:
 						selection = tree.getSelection();
 						if (selection.length == 1) {
@@ -220,7 +214,7 @@ public class MsgPackEditor extends EditorPart {
 							}
 						}
 						break;
-						
+
 					/* TODO: HACK: This needs a constant! */
 					case 127:	/* Delete key */
 						selection = tree.getSelection();
@@ -234,12 +228,32 @@ public class MsgPackEditor extends EditorPart {
 			}
 		});
 
+		/* TODO: Add support for context menu on empty space */
+//		tree.addMouseListener(new MouseAdapter() {
+//			@Override
+//			public void mouseDown(MouseEvent event) {
+//				System.out.println("mouseDown");
+//
+//				/* TODO: HACK: is there really no constant for button? */
+//				/* If right button is clicked */
+//				if (event.button == 3) {
+//					final TreeItem selectedItem = tree.getItem(new Point(event.x, event.y));
+//					if (selectedItem == null) {
+//						tree.deselectAll();
+//						treeViewer.setSelection(new TreeSelection());
+//						
+//						System.out.println("mouseListerner: "+treeViewer.getSelection());
+//						
+//						menu.setVisible(true);
+//					} else {
+//						menu.setVisible(true);
+//					}
+//				}
+//			}
+//		});
+		
 		// Context Menu
 		createContextMenu(parent.getDisplay());
-		
-		// TODO: deselect tree elements
-		
-		// TODO: remove elements
 		
 //		// TODO: DND Support
 //		Transfer[] transfers = new Transfer[] {org.eclipse.ui.part.PluginTransfer.getInstance()};
@@ -339,53 +353,49 @@ public class MsgPackEditor extends EditorPart {
 
 			@Override
 			public void widgetSelected(SelectionEvent event) {
-				Object obj = event.widget.getData();
-
-				ModelBaseValue newValue = null;
-
-				if (obj instanceof ModelArray) {
-					newValue = new ModelArray(new ArrayList<>());
-				} else if (obj instanceof ModelBinary) {
-					newValue = new ModelBinary(new byte[0]);
-				} else if (obj instanceof ModelBoolean) {
-					newValue = new ModelBoolean(false);
-				} else if (obj instanceof ModelExtension) {
-					newValue = new ModelExtension(new byte[0], (byte) 0);
-				} else if (obj instanceof ModelFloat) {
-					newValue = new ModelFloat(0);
-				} else if (obj instanceof ModelInteger) {
-					newValue = new ModelInteger(0);
-				} else if (obj instanceof ModelMap) {
-					newValue = new ModelMap(new ArrayList<>());
-				} else if (obj instanceof ModelNil) {
-					newValue = new ModelNil();
-				} else if (obj instanceof ModelString) {
-					newValue = new ModelString("");
+				@SuppressWarnings("unchecked")
+				Class<? extends ModelBaseValue> clazz = (Class<? extends ModelBaseValue>) event.widget.getData();
+				
+				ModelBaseValue newValue;
+				try {
+					newValue = (ModelBaseValue) clazz.newInstance();
+				} catch (InstantiationException | IllegalAccessException e) {
+					newValue = null;
 				}
 				
 				if (newValue != null) {
-					if (currValue instanceof ModelArray) {
+					if (currValue == null) {
+						model.addElement(newValue);
+					} else if (currValue instanceof ModelArray) {
 						((ModelArray) currValue).getValue().add(newValue);
-						MsgPackEditor.this.treeViewer.refresh();
-						MsgPackEditor.this.setDirty();
 					} else if (currValue instanceof ModelMap) {
 						((ModelMap) currValue).getValue().add(newValue);
-						MsgPackEditor.this.treeViewer.refresh();
-						MsgPackEditor.this.setDirty();
 					}
+					MsgPackEditor.this.treeViewer.refresh();
+					MsgPackEditor.this.setDirty();
 				}
 			}
 
 			@Override
 			public void menuDetected(MenuDetectEvent event) {
+				System.out.println("menuDetected");
+				System.out.println(event.detail);
+				
 				IStructuredSelection selection = (IStructuredSelection) treeViewer.getSelection();
 				Object[] objList = selection.toArray();
+				
+				currValue = null;
 				
 				if (objList.length == 1) {
 					if (   (objList[0] instanceof ModelArray)
 						|| (objList[0] instanceof ModelMap)) {
 						
+						System.out.println("menuDetected: " + objList[0]);
+						
 						Tree tempTree = (Tree) event.widget;
+						
+						System.out.println(tempTree.getSelection());
+						
 						TreeItem[] treeSelection = tempTree.getSelection();
 						if (treeSelection.length == 1) {
 							ModelBaseValue treeElement = (ModelBaseValue) treeSelection[0].getData();
@@ -400,87 +410,35 @@ public class MsgPackEditor extends EditorPart {
 			}
 		};
 		
-		Menu menu = new Menu(tree);
+		menu = new Menu(tree);
 		tree.setMenu(menu);
 		MenuListener menuListener = new MenuListener();
 		tree.addMenuDetectListener(menuListener);
 
-		MenuItem menuItemArray = new MenuItem(menu, SWT.NONE);
-		menuItemArray.setText("Add Array");
-		menuItemArray.setData(new ModelArray(new ArrayList<>()));
-		menuItemArray.addSelectionListener(menuListener);
-		MenuItem menuItemBinary = new MenuItem(menu, SWT.NONE);
-		menuItemBinary.setText("Add Binary");
-		menuItemBinary.setData(new ModelBinary(new byte[0]));
-		menuItemBinary.addSelectionListener(menuListener);
-		MenuItem menuItemBoolean = new MenuItem(menu, SWT.NONE);
-		menuItemBoolean.setText("Add Boolean");
-		menuItemBoolean.setData(new ModelBoolean(false));
-		menuItemBoolean.addSelectionListener(menuListener);
-		MenuItem menuItemExtension = new MenuItem(menu, SWT.NONE);
-		menuItemExtension.setText("Add Extension");
-		menuItemExtension.setData(new ModelExtension(new byte[0], (byte) 0));
-		menuItemExtension.addSelectionListener(menuListener);
-		MenuItem menuItemFloat = new MenuItem(menu, SWT.NONE);
-		menuItemFloat.setText("Add Float");
-		menuItemFloat.setData(new ModelFloat(0));
-		menuItemFloat.addSelectionListener(menuListener);
-		MenuItem menuItemInteger = new MenuItem(menu, SWT.NONE);
-		menuItemInteger.setText("Add Integer");
-		menuItemInteger.setData(new ModelInteger(0));
-		menuItemInteger.addSelectionListener(menuListener);
-		MenuItem menuItemMap = new MenuItem(menu, SWT.NONE);
-		menuItemMap.setText("Add Map");
-		menuItemMap.setData(new ModelMap(new ArrayList<>()));
-		menuItemMap.addSelectionListener(menuListener);
-		MenuItem menuItemNil = new MenuItem(menu, SWT.NONE);
-		menuItemNil.setText("Add Nil");
-		menuItemNil.setData(new ModelNil());
-		menuItemNil.addSelectionListener(menuListener);
-		MenuItem menuItemString = new MenuItem(menu, SWT.NONE);
-		menuItemString.setText("Add String");
-		menuItemString.setData(new ModelString(""));
-		menuItemString.addSelectionListener(menuListener);
+		addMenuElement("Add Array",     "icons/array.png",     ModelArray.class,     menuListener, display);
+		addMenuElement("Add Binary",    "icons/binary.png",    ModelBinary.class,    menuListener, display);
+		addMenuElement("Add Boolean",   "icons/boolean.png",   ModelBoolean.class,   menuListener, display);
+		addMenuElement("Add Extension", "icons/extension.png", ModelExtension.class, menuListener, display);
+		addMenuElement("Add Float",     "icons/float.png",     ModelFloat.class,     menuListener, display);
+		addMenuElement("Add Integer",   "icons/integer.png",   ModelInteger.class,   menuListener, display);
+		addMenuElement("Add Map",       "icons/map.png",       ModelMap.class,       menuListener, display);
+		addMenuElement("Add Nil",       "icons/nil.png",       ModelNil.class,       menuListener, display);
+		addMenuElement("Add String",    "icons/string.png",    ModelString.class,    menuListener, display);
+	}
+
+	private void addMenuElement(final String text, final String imagePath, final Class<? extends ModelBaseValue> modelClass, final SelectionAdapter menuListener, final Display display) {
+		MenuItem menuItem = new MenuItem(menu, SWT.NONE);
+		menuItem.setText(text);
+		menuItem.setData(modelClass);
+		menuItem.addSelectionListener(menuListener);
 	
 		Image origImage;
 		Image resizedImage;
 		URL url;
 		
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/array.png"), null);
+		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path(imagePath), null);
 		origImage = ImageDescriptor.createFromURL(url).createImage(true);
 		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemArray.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/binary.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemBinary.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/boolean.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemBoolean.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/extension.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemExtension.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/float.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemFloat.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/integer.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemInteger.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/map.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemMap.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/nil.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemNil.setImage(resizedImage);
-		url = FileLocator.find(Platform.getBundle(MsgPackEditor.PLUGIN_ID), new Path("icons/string.png"), null);
-		origImage = ImageDescriptor.createFromURL(url).createImage(true);
-		resizedImage = new Image(display, origImage.getImageData().scaledTo(16, 16));
-		menuItemString.setImage(resizedImage);		
+		menuItem.setImage(resizedImage);
 	}
 }

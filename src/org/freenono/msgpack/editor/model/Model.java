@@ -200,4 +200,8 @@ public class Model {
 			modelBaseValue.removeElement(element);
 		}
 	}
+	
+	public void addElement(ModelBaseValue element) {
+		topLevel.add(element);
+	}
 }
